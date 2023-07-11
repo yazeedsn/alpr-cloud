@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "alpr-cloud-v1",
+  "private_key_id": "f353f9584e24f04acabc1acb556325b660085a34",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDfPk+3tU4kHi6K\nRRPfrzUhWU/SXdu0uP3x083EFjx7l5iTfJysS0zFc6wDR+mp45eMgINks4W+nsg3\nvhQtu1IwTlAlVU4SWBaj4Z0DeqTvi5txhQFHvau+odXLi8F45PTb1yk36/O99Dzf\nu20Ru/9c4J3fA86zrkFhKJObrIj4+YJaRj6DhvvnvcCZoo8pEEE08rs74NJ4TuJf\nGJ42CYujF5ysIhq+kPz6MKSk0VWL0WQl583rY+EPvrNpfJS4uf2FLjqPjX0W4kGq\n3NgdtDc4MO7SeVmSwKwQaA60vhH6cp3xsLJgLgK1ENAnrn8/zEJNoFHk9Ww/NWxS\nje4QTeAPAgMBAAECggEATMzQ+/BBq6c+d48AIUnTS1/AWCy18txZcKJe/YBw2kvy\nz3plI9jb1mnO2WoZ9ro3XryvdytTbZqOYq7fnkP9KGUoqU9JhoILd+Gb9KBysX4j\nwc/x+s5DkVd3h4jSzFZn7mF86qIfvk+RyZ5fDWTRmxAi/5/9sk7Wayhcb4fRr2Ty\neM8teA/vYzPoeFv/0zgPm8k/Vbkz2G3YnatHeVBj+t1MHVmps+ztzNDSLeb+wxah\nh9ouxeg5tncUNLmOUDyCnGhHYwgh1nB8SqClfFHJxHYJHxDBaI+46XDpuTpKuADZ\nsAYdtW7RW/fN3tmg6ie7OzCpZBUPO/NALXb5QI4GIQKBgQDvWteUPT1UuBm72Hu1\nAOi7zix+3SGl60JpRBwPm5oHjO/9vmW08o17naI5O3C2iGMOUe2uG0KCK7G08oED\nNQMs+c8D/M/Kq/PNTDa1KtE6zByAM9J2wdMOw/lSfPxq1jDaXKKN50rZcdZ+ALez\nUnpBbrJwsXrVoK9zVvZOau4lmQKBgQDuxKRv67Uv4dMTWnp84GrjwnbPLHCgx8z9\nO415RczbxmLEWI/r1LRA6ns4FK6HU6tTMDO68COOGGLlH6Vl8CQPAb6YBqGSu2Lg\nP4bdYTdCNFqV2T4rOHgOJlQhLlT9hhe7n8az3N6iEPWVC73Scm8T+z+r3yHNrWo+\nSG1JIStr5wKBgB9Yz1j7uDeLMNuYG4N2DgTimJM41LpNGFJ++AnXQBHzFE8wC1Pq\nXDsvRtql/Tn6nLZ4Zl9h9JDltg1ToS/RVowiX0lPZ8tMP87IR3XsmKBRsP3dS5gA\nBGsvoUx7T/eR+63taeCZxQS7UvMHlwdmKtq866O0qrilpbS+U92rRWspAoGAC2Vn\nU9A0PazRnkLbRcqQT36gnRLJ7WKb7hpBjmA+ft7hJ+3yMJdeYxrN9sdF7T+ZFcdf\nMLT1fXq8faMdCdiEYBL9PdRTMeWvunRNw5M4R/inui88QGPZlxNNQKgtdkxIJbRi\nj4MjPSkCD7MXxEuh8Zo0V8e2nVKBl6dtT+g9YlECgYEAjCXkk6bR6zWZpGx8lppl\nvDvjvtTpFEv6k16h5eSgMg7eY61jKyJP/ZPo0Zeyv7PCvJnIENdWuJVjrpQe9aGe\n7rKuBonNDjoxq88tGh+UUBl4T7JheW5AEgx1L0K2pf6vQMb3vLf0QkutYWn0Kev1\ncqXqBKi/l2YY9QDubcIuKSI=\n-----END PRIVATE KEY-----\n",
+  "client_email": "cloud-storage@alpr-cloud-v1.iam.gserviceaccount.com",
+  "client_id": "102376481523386911765",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/cloud-storage%40alpr-cloud-v1.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

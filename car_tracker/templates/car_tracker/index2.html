@@ -1,0 +1,215 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Graduation Project</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="{% static 'images/apple-touch-icon.png' %}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicon-32x32.png' %}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicon-16x16.png' %}">
+    <link rel="manifest" href="{% static 'images/site.webmanifest' %}">
+    <link rel="mask-icon" href="{% static 'images/safari-pinned-tab.svg' %}" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
+    <link rel="stylesheet" href="{% static 'car_tracker/css/styles.css' %}">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <div class="topnav">
+        <a href="#" class="logo disabled_link">
+            <img src="{% static 'car_tracker/images/mersad.png' %}">
+            MERSAD
+        </a>
+        <a href="#dashboard" class="active">Dashboard</a>
+        <a href="#track">Track</a>
+        <a href="#about">About</a>
+    </div>
+
+    <!-- Side Navigation Bar -->
+    <div class="sidenav">
+        <div class="dashboard_sidenav" style="display: none;">
+            <div class="dashboard_sidenav_inner_1">
+                <h3 class="sidenav-title">Devices</h3>
+                <ul class="devices">
+                </ul>
+            </div>
+            <div class="dashboard_sidenav_inner_2">
+                <button id="add-device-btn">Add Tracking Device</button>
+            </div>
+        </div>
+        <div class="track_sidenav" style="display: none;">
+            <div class="track_sidenav_inner_1">
+                <h3>License Plates</h3>
+                <ul id="license-plate-list">
+                    <!-- License Plate List Items will be dynamically added here -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Area - About Tab -->
+    <div class="content about_content">
+        <div class="card">
+            <h3>AI-Based Car Tracking System</h3>
+            <p>A graduation project is submitted to the Computer Engineering Department in partial fulfillment of the requirements for the degree of B.Sc. in Computer Engineering.</p>
+            <p>Supervisor:</p>
+            <div class="supervisor-card">
+                <div class="card-inner">
+                    <div class="card-front">
+                        <img src="{% static 'car_tracker/images/Mohammed.jpeg' %}">
+                    </div>
+                    <div class="card-back">
+                        <p>Prof. Mohammed AlHanjouri</p>
+                    </div>
+                </div>
+            </div>
+            <p>Students:</p>
+            <div class="students">
+                <div class="student-card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <img src="{% static 'car_tracker/images/osama.jpeg' %}">
+                        </div>
+                        <div class="card-back">
+                            <p>Osama M. AlNahhal</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="student-card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <img src="{% static 'car_tracker/images/omar.jpeg' %}">
+                        </div>
+                        <div class="card-back">
+                            <p>Omar S. AbuRabie</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="student-card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <img src="{% static 'car_tracker/images/waseem.jpeg' %}">
+                        </div>
+                        <div class="card-back">
+                            <p>Waseem H. AlFarram</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="student-card">
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <img src="{% static 'car_tracker/images/yazeed.jpeg' %}">
+                        </div>
+                        <div class="card-back">
+                            <p>Yazeed M. AbuSultan</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Content Area - Dashboard Tab -->
+    <div class="content dashboard_content">
+        <div class="dashboard-container">
+            <div class="table-section">
+                <table id="dashboard-table">
+                    <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Device ID</th>
+                            <th>Time</th>
+                            <th>License Plate</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Dashboard Table Entries will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Content Area - Track Tab -->
+    <div class="content track_content">
+        <div class="track-container">
+            <div class="table-section">
+                {% csrf_token %}
+                <div id="track-input">
+                    <label for="track-input-field">Enter License Plate:</label>
+                    <input type="text" id="track-input-field">
+                    <button id="track-btn">Track</button>
+                </div>
+                <table id="track-table">
+                    <thead>
+                        <tr>
+                            <th>Entry</th>
+                            <th>Device ID</th>
+                            <th>Time</th>
+                            <th>License Plate</th>
+                            <th>Location</th>
+                        </tr>
+                    </thead>
+                    <tbody id="track-table-body">
+                        <!-- Track Table Entries will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="add-device-popup" class="popup-container">
+        <div class="popup-content">
+            <h3>Add Device</h3>
+            <form id="add-device-form">
+                {% csrf_token %}
+                <div class="form-groups-1">
+                    <div class="form-group">
+                        <label for="device-name">Device Name:</label>
+                        <input type="text" id="device-name" name="device-name">
+                    </div>
+                    <div class="form-group">
+                        <label for="device-type">Device Type:</label>
+                        <select id="device-type" name="device-type">
+                            <option value="camera">Camera</option>
+                            <option value="image">Image</option>
+                            <option value="video">Video</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="device-id">Device ID:</label>
+                        <input type="text" id="device-id" name="device-id">
+                    </div>
+                    <div class="form-group">
+                        <label for="recording-time">Recording Time:</label>
+                        <input type="datetime-local" id="recording-time" name="recording-time">
+                    </div>
+                    <div class="form-group">
+                        <label for="device-location">Device Location:</label>
+                        <input type="text" id="device-location" name="device-location">
+                    </div>
+                    <div class="form-group">
+                        <label for="file">Upload image or video:</label>
+                        <input type="file" name="file" id="file">
+                    </div>
+                </div>
+                <div class="form-groups-2">
+                    <div class="submit-group">
+                        <button id="confirm-device-btn" type="submit">Add Device</button>
+                    </div>
+                </div>
+            </form>
+            <button id="close-popup-button">X</button>
+        </div>
+    </div>
+
+    <script src="{% static 'car_tracker/js/app.js' %}"></script>
+    <script>
+        const uploadFileUrl = "{% url 'upload_file' %}"
+        const searchByPlateUrl = "{% url 'search_by_plate' %}"
+    </script>
+</body>
+</html>
