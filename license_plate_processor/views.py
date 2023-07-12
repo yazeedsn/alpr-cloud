@@ -9,7 +9,7 @@ import time
 import numpy as np
 
 
-def process_file(data, extension, path, device_identifier, device_type, recording_time, location):
+def process_file(file, extension, device_identifier, device_type, recording_time, location):
     """
     takes a file (image, video, IP for a camera), verifies it, then extracts license plate information from each frame from that file
 
@@ -44,56 +44,83 @@ def process_file(data, extension, path, device_identifier, device_type, recordin
     results = []
 
     if isImage:
-        #nparr = np.frombuffer(data, np.uint8)
-        #image = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
-        image = cv2.imread(path)
+        nparr = np.frombuffer(file, np.uint8)
+        image = cv2.imdecode(file, cv2.IMREAD_UNCHANGED)
+        print(image)
         detections = read_image(image, intilized_ocr)
         records = _get_records(detections, device_identifier, device_type, recording_time, location)
         save_license_plate_frame(records)
         results.append(records)
 
     else:
-        cap = cv2.VideoCapture(path)
-        frame_count = 0
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        reading_thread = None
-        result = [None]
-        start_time = time.time()
-        counts = {}
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                print('Finished processing the video')
-                break
-            frame_count += 1
-            frame_time = calculate_frame_time(frame_count, fps, recording_time)
-            if not reading_thread or not reading_thread.is_alive():
-                if(result[0] != None):
-                    records = _get_records(result[0], device_identifier, device_type, recording_time, location)
-                    #keep = []
-                    #for record in records:
-                    #    number = record['plate_number']
-                    #    counts[number] = counts.get(number, 0) + 1
-                    #    if(counts[number] >= 5):
-                    #        keep.append(record)
-                    #        counts[number] = 0
+        if file.content_type.startswith('video'):
+            cap = cv2.VideoCapture(file.temporary_file_path())
+            frame_count = 0
+            second_count = 0
+            fps = cap.get(cv2.CAP_PROP_FPS)
+            reading_thread = None
+            result = [None]
+            start_time = time.time()
+            counts = {}
+            plate_images = {}
+            while True:
+                ret, frame = cap.read()
+
+                if not ret:
+                    # No more frames in the video
+                    print('Finished processing the video')
+                    break
+                if(frame_count == fps):
+                    frame_count = 0
+                    second_count += 1
+                if(second_count % 10 == 0):
+                    records = []
+                    for number, count in counts.items():
+                        if(count > 6):
+                            encoded_image = plate_images[number]
+                            confidence = (count/10) if count < 10 else 1
+                            records.append(encapsulate_record(number, confidence, encoded_image, second_count, device_identifier, device_type, location))
+                            counts[number] = 0
                     save_license_plate_frame(records)
                     results.append(records)
-                reading_thread = threading.Thread(target=read, args=(frame, intilized_ocr, result))
-                reading_thread.start()
-
-            #reading_thread.join()
-            time.sleep(1/fps)
-            
-        end_time = time.time()
-        print(f"Run Time: {end_time - start_time: .2f}")
-        cap.release()
+                    plate_images = {}
+                frame_count += 1
+                frame_time = calculate_frame_time(frame_count, fps, recording_time)
+                if not reading_thread or not reading_thread.is_alive():
+                    if(result[0] != None):
+                        detections = result[0]
+                        for detection in detections:
+                            plate_number, confidence_score, encoded_image = detection
+                            counts[plate_number] = counts.get(plate_number, 0) + 1
+                            plate_images[plate_number] = encoded_image
+                            print(plate_number)
+                    reading_thread = threading.Thread(target=read, args=(frame, intilized_ocr, result))
+                    reading_thread.start()
+                time.sleep(1/fps)
+            records = []
+            for number, count in counts.items():
+                if(count > 5):
+                    encoded_image = plate_images[number]
+                    confidence = (count/10) if count < 10 else 1
+                    records.append(encapsulate_record(number, confidence, encoded_image, second_count, device_identifier, device_type, location))
+            save_license_plate_frame(records)
+            results.append(records)
+            end_time = time.time()
+            print(f"Run Time: {end_time - start_time: .2f}")
+            cap.release()
     return results
 
 def read(frame, ocr_reader, result):
     detections = read_image(frame, ocr_reader)
     result[0] = detections
 
+def matching_digits(number1, number2):
+    assert len(number1) == len(number2)
+    matches = 0
+    for i in range(len(number1)):
+        if(number1[i] == number2[i]):
+            matches += 1
+    return matches
 
 def _get_records(detections, device_identifier, device_type, recording_time, location):
     records = []

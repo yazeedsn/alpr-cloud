@@ -11,46 +11,9 @@ from django.http import JsonResponse
 
 import threading
 from google.cloud import storage
+import cv2
 
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif', 'mp4'}
-
-
-# Cloud functions
-def upload_blob_from_memory(bucket_name, contents, destination_blob_name):
-    """Uploads a file to the bucket."""
-
-    # The ID of your GCS bucket
-    # The contents to upload to the file
-    # The ID of your GCS object
-
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-    blob.upload_from_string(contents)
-
-    print(
-        f"{destination_blob_name} uploaded to {bucket_name}."
-    )
-
-
-def download_blob_into_memory(bucket_name, blob_name):
-    """Downloads a blob into memory."""
-    # The ID of your GCS bucket
-    # The ID of your GCS object
-
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_name)
-    contents = blob.download_as_string()
-
-    print(
-        "Downloaded storage object {} from bucket {} as the following string: {}.".format(
-            blob_name, bucket_name, contents
-        )
-    )
-
-
-
 
 
 def index(request):
@@ -79,19 +42,23 @@ def upload_file(request):
         device_type = request.POST.get('deviceType')
         location = request.POST.get('deviceLocation')
         
-        file_name, extension = file.name.split(".")
-        file_path = os.path.join(settings.MEDIA_ROOT, file_name + "."+ extension)
-        with open(file_path, 'wb') as destination:
-            for chunk in file.chunks():
-                destination.write(chunk)
-        print("$"*100)
-        print("Finished Uploading File!")
-        print("$"*100)
-        data = None#file.read()
-        #threading.Thread(target=upload_blob_from_memory, args=(settings.GS_BUCKET_NAME, data, device_identifier+"."+extension))
-        results = process_file(data, extension, file_path, device_identifier, device_type, recording_time, location)
+        _, extension = file.name.rsplit(".", 1) 
+        #file_path = os.path.join(settings.MEDIA_ROOT, file_name + "."+ extension)
+        #with open(file_path, 'wb') as destination:
+        #    for chunk in file.chunks():
+        #        destination.write(chunk)
+        
+        #upload_blob_from_memory(settings.GS_BUCKET_NAME, file, device_identifier+"."+extension)
+
+        #print("$"*100)
+        #print("Finished Uploading File!")
+        #print("$"*100)
+        
+        #data = None#file.read()
+        threading.Thread(target=upload_blob_from_memory, args=(settings.GS_BUCKET_NAME, file, device_identifier+"."+extension))
+        results = process_file(file, extension, device_identifier, device_type, recording_time, location)
         # results's format = list of lists of dictionaries, each representing a license plate and its information.
-        print(results)
+        #print(results)
         response_data = {
             'results': results
         }
@@ -134,3 +101,40 @@ def search_by_plate(request):
 
 
 
+# Cloud functions
+def upload_blob_from_memory(bucket_name, file, destination_blob_name):
+    """Uploads a file to the bucket."""
+
+    # The ID of your GCS bucket
+    # The contents to upload to the file
+    # The ID of your GCS object
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(destination_blob_name)
+    blob.upload_from_file(file)
+    #with blob.open("w") as destination:
+    #    for chunk in file.chunks():
+    #        destination.write(chunk)
+    #blob.upload_from_string(contents)
+
+    print(
+        f"{destination_blob_name} uploaded to {bucket_name}."
+    )
+
+
+def download_blob_into_memory(bucket_name, blob_name):
+    """Downloads a blob into memory."""
+    # The ID of your GCS bucket
+    # The ID of your GCS object
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    contents = blob.download_as_string()
+
+    print(
+        "Downloaded storage object {} from bucket {} as the following string: {}.".format(
+            blob_name, bucket_name, contents
+        )
+    )
