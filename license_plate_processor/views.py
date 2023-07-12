@@ -1,5 +1,5 @@
 from .utils.reader import read_image
-from .utils.ocr_reader import PaddleOCR
+from .utils.models_loader import intilized_ocr
 from .utils.database_functions import save_license_plate_frame
 from .utils.util_functions import calculate_frame_time, encapsulate_record
 
@@ -7,6 +7,7 @@ import threading
 import cv2
 import time
 import numpy as np
+
 
 def process_file(data, extension, path, device_identifier, device_type, recording_time, location):
     """
@@ -29,8 +30,7 @@ def process_file(data, extension, path, device_identifier, device_type, recordin
                 }
         ex: [[(), ()], [()], [(), (), ()]]
     """
-    
-    ocr_reader = PaddleOCR()
+
     image_extension = ['jpg', 'png', 'jpeg']
     video_extension = ['mp4']
     isImage = False
@@ -47,7 +47,7 @@ def process_file(data, extension, path, device_identifier, device_type, recordin
         #nparr = np.frombuffer(data, np.uint8)
         #image = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
         image = cv2.imread(path)
-        detections = read_image(image, ocr_reader)
+        detections = read_image(image, intilized_ocr)
         records = _get_records(detections, device_identifier, device_type, recording_time, location)
         save_license_plate_frame(records)
         results.append(records)
@@ -79,7 +79,7 @@ def process_file(data, extension, path, device_identifier, device_type, recordin
                     #        counts[number] = 0
                     save_license_plate_frame(records)
                     results.append(records)
-                reading_thread = threading.Thread(target=read, args=(frame, ocr_reader, result))
+                reading_thread = threading.Thread(target=read, args=(frame, intilized_ocr, result))
                 reading_thread.start()
 
             #reading_thread.join()

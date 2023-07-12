@@ -37,16 +37,13 @@ class PytesseractOCR(OCR_Reader):
             return ''
 
 class PaddleOCR(OCR_Reader):
-    def __init__(self, use_gpu=False):
+    def __init__(self, use_gpu=True):
         self._reader = POCR(use_angle_cls=True, lang='en', use_gpu=use_gpu)
-    
+
     def readtext(self, image):
         results = self._reader.ocr(image, det=False, cls=True)
-        print('-'*50)
-        print(f"Using GPU {use_gpu}")
-        print(results)
-        print('-'*50)
         if(results):
             if(results[0]):
                 return results[0][0]
         return ''
+

@@ -1,18 +1,8 @@
-from ultralytics import YOLO
-import torch
-import os
+from .models_loader import yolo_model
 
-# Use the weights previously obtained from training.
-model = YOLO(os.path.join(os.getcwd() , 'car_tracking/license_plate_processor/utils/yolo_weights/best.pt'))
-# If a supported GPU is avaliable, use it instead of cpu.
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-print("#"*50 + "YOLO Model" + "#"*50)
-print(f"Using: {device}")
-print("#" * 110)
-model.to(device)
 
 def predict(frame):
-    results = model(source=frame, stream=True)
+    results = yolo_model(source=frame, stream=True, save=False)
     cars = []
     plates = []
     for result in results:
@@ -30,9 +20,9 @@ def predict(frame):
         for index, plate in enumerate(plates):
             if(within(plate, car)):
                 car_plate = plate
+                output.append((car, car_plate))
                 plates.pop(index)
-        output.append((car, car_plate))
-    
+
     for plate in plates:
         output.append((None, plate))
         

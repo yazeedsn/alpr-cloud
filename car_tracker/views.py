@@ -87,8 +87,8 @@ def upload_file(request):
         print("$"*100)
         print("Finished Uploading File!")
         print("$"*100)
-        data = file.read()
-        threading.Thread(target=upload_blob_from_memory, args=(settings.GS_BUCKET_NAME, data, device_identifier+"."+extension))
+        data = None#file.read()
+        #threading.Thread(target=upload_blob_from_memory, args=(settings.GS_BUCKET_NAME, data, device_identifier+"."+extension))
         results = process_file(data, extension, file_path, device_identifier, device_type, recording_time, location)
         # results's format = list of lists of dictionaries, each representing a license plate and its information.
         print(results)
