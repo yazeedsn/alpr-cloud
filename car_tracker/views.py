@@ -43,22 +43,10 @@ def upload_file(request):
         location = request.POST.get('deviceLocation')
         
         _, extension = file.name.rsplit(".", 1) 
-        #file_path = os.path.join(settings.MEDIA_ROOT, file_name + "."+ extension)
-        #with open(file_path, 'wb') as destination:
-        #    for chunk in file.chunks():
-        #        destination.write(chunk)
         
-        #upload_blob_from_memory(settings.GS_BUCKET_NAME, file, device_identifier+"."+extension)
-
-        #print("$"*100)
-        #print("Finished Uploading File!")
-        #print("$"*100)
-        
-        #data = None#file.read()
         threading.Thread(target=upload_blob_from_memory, args=(settings.GS_BUCKET_NAME, file, device_identifier+"."+extension))
         results = process_file(file, extension, device_identifier, device_type, recording_time, location)
         # results's format = list of lists of dictionaries, each representing a license plate and its information.
-        #print(results)
         response_data = {
             'results': results
         }

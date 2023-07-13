@@ -3,6 +3,7 @@ from .utils.models_loader import intilized_ocr
 from .utils.database_functions import save_license_plate_frame
 from .utils.util_functions import calculate_frame_time, encapsulate_record
 
+from io import BytesIO
 import threading
 import cv2
 import time
@@ -44,9 +45,12 @@ def process_file(file, extension, device_identifier, device_type, recording_time
     results = []
 
     if isImage:
-        nparr = np.frombuffer(file, np.uint8)
-        image = cv2.imdecode(file, cv2.IMREAD_UNCHANGED)
-        print(image)
+        data = BytesIO()
+        for chunk in file.chunks():
+            data.write(chunk)
+        data.seek(0)
+        nparr = np.frombuffer(data.read(), np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_UNCHANGED)
         detections = read_image(image, intilized_ocr)
         records = _get_records(detections, device_identifier, device_type, recording_time, location)
         save_license_plate_frame(records)
@@ -61,8 +65,6 @@ def process_file(file, extension, device_identifier, device_type, recording_time
             reading_thread = None
             result = [None]
             start_time = time.time()
-            counts = {}
-            plate_images = {}
             while True:
                 ret, frame = cap.read()
 
@@ -73,38 +75,18 @@ def process_file(file, extension, device_identifier, device_type, recording_time
                 if(frame_count == fps):
                     frame_count = 0
                     second_count += 1
-                if(second_count % 10 == 0):
-                    records = []
-                    for number, count in counts.items():
-                        if(count > 6):
-                            encoded_image = plate_images[number]
-                            confidence = (count/10) if count < 10 else 1
-                            records.append(encapsulate_record(number, confidence, encoded_image, second_count, device_identifier, device_type, location))
-                            counts[number] = 0
-                    save_license_plate_frame(records)
-                    results.append(records)
-                    plate_images = {}
                 frame_count += 1
                 frame_time = calculate_frame_time(frame_count, fps, recording_time)
                 if not reading_thread or not reading_thread.is_alive():
                     if(result[0] != None):
-                        detections = result[0]
-                        for detection in detections:
-                            plate_number, confidence_score, encoded_image = detection
-                            counts[plate_number] = counts.get(plate_number, 0) + 1
-                            plate_images[plate_number] = encoded_image
-                            print(plate_number)
+                        records = _get_records(result[0], device_identifier, device_type, recording_time, location)
+                        save_license_plate_frame(records)
+                        results.append(records)
                     reading_thread = threading.Thread(target=read, args=(frame, intilized_ocr, result))
                     reading_thread.start()
                 time.sleep(1/fps)
-            records = []
-            for number, count in counts.items():
-                if(count > 5):
-                    encoded_image = plate_images[number]
-                    confidence = (count/10) if count < 10 else 1
-                    records.append(encapsulate_record(number, confidence, encoded_image, second_count, device_identifier, device_type, location))
-            save_license_plate_frame(records)
-            results.append(records)
+            
+    
             end_time = time.time()
             print(f"Run Time: {end_time - start_time: .2f}")
             cap.release()
