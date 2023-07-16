@@ -10,7 +10,7 @@ print("Intlilizng YOLO:")
 # Settings for the models
 _weights_path = os.path.join(os.path.dirname(__file__), "yolo_weights", "best.pt")
 _device = 'cuda' if torch.cuda.is_available() else 'cpu'
-_use_gpu_paddle_ocr = True if torch.cuda.is_available() else False
+_use_gpu_paddle_ocr = False#True if torch.cuda.is_available() else False
 
 #Loading yolo model
 yolo_model = YOLO(_weights_path)

@@ -472,6 +472,42 @@ function appendResultsToTrackTable(results) {
         row.appendChild(locationCell);
         row.appendChild(imageCell);
 
+        // Add event listener for double-click on the license plate cell
+        licensePlateCell.addEventListener('dblclick', () => {
+            const editableInput = document.createElement('input');
+            editableInput.type = 'text';
+            editableInput.value = plate_number;
+            editableInput.classList.add('editable-input');
+
+            // Replace the license plate text with the editable input field
+            licensePlateCell.innerHTML = '';
+            licensePlateCell.appendChild(editableInput);
+            editableInput.focus();
+
+            // Add event listener to the editable input field
+            editableInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    const newPlateNumber = editableInput.value.trim();
+                    if (newPlateNumber !== plate_number) {
+                        updateLicensePlateNumber(row, license_plate_id, newPlateNumber);
+                    } else {
+                        licensePlateCell.innerHTML = '';
+                        licensePlateCell.appendChild(licensePlateText);
+                    }
+                }
+            });
+
+            editableInput.addEventListener('blur', () => {
+                const newPlateNumber = editableInput.value.trim();
+                if (newPlateNumber !== plate_number) {
+                    updateLicensePlateNumber(row, license_plate_id, newPlateNumber);
+                } else {
+                    licensePlateCell.innerHTML = '';
+                    licensePlateCell.appendChild(licensePlateText);
+                }
+            });
+        });
+
         const insertIndex = rows.findIndex((row) => {
             const timeValue = new Date(row.cells[2].textContent).getTime();
             const resultTimeValue = new Date(time).getTime();
