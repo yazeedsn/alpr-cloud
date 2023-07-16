@@ -45,10 +45,9 @@ def process_video(ocr_reader, file_path, device_info, shared_data, shared_data_l
             if(repeat_count.get(plate_number, 0) >= 3):
                 license_plates_info = save_frame_data([data_unit])
                 format_plates_info(license_plates_info)
-
-        with shared_data_lock:
-            if device_identifier in shared_data:
-                shared_data[device_identifier]['results'].append(extracted_frame_data)
+                with shared_data_lock:
+                    if device_identifier in shared_data:
+                        shared_data[device_identifier]['results'].append([data_unit])
     end_time = time.time()
     cap.release()
     print(f"processing time: {end_time-start_time}")
