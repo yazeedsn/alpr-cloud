@@ -5,7 +5,7 @@ from scipy import ndimage as inter
 def preprocess(img, height=50):
     output_image = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     output_image = cv2.normalize(output_image, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
-    output_image = cv2.resize(output_image, dsize=(height*5, height), interpolation=cv2.INTER_CUBIC)
+    output_image = cv2.resize(output_image, dsize=(int(4.5*height), height), interpolation=cv2.INTER_CUBIC)
     output_image = _correct_skew(output_image)
     return output_image
 
@@ -32,4 +32,7 @@ def _correct_skew(image, delta=1, limit=12):
             borderMode=cv2.BORDER_REPLICATE)
     
     return corrected
+
+    
+
     

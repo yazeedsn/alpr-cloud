@@ -2,7 +2,7 @@ from .models_loader import yolo_model
 
 
 def predict(frame):
-    results = yolo_model(source=frame, stream=True, save=False)
+    results = yolo_model(source=frame, stream=True, save=False, verbose=True)
     cars = []
     plates = []
     for result in results:
@@ -27,6 +27,6 @@ def predict(frame):
         output.append((None, plate))
         
     return output
-    
+
 def within(plate, car):
     return plate[0] > car[0] and plate[1] > car[1] and plate[2] < car[2] and plate[3] < car[3]

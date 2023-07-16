@@ -1,7 +1,12 @@
 // ------------------------------ navbar functionality ----------------------------------------
 
+const dashboardSideNav = document.querySelector('.dashboard_sidenav');
+const trackSideNav = document.querySelector('.track_sidenav');
 let activeTab = "about";
+
+
 document.addEventListener("DOMContentLoaded", initializeTabs);
+
 
 // ------------------------------ dashboard tab functionality ----------------------------------------
 
@@ -9,37 +14,44 @@ const addDeviceBtn = document.getElementById('add-device-btn');
 const closePopupButton = document.getElementById('close-popup-button');
 const deviceTypeSelect = document.getElementById('device-type');
 const confirmDeviceBtn = document.getElementById('confirm-device-btn');
+const addDevicePopup = document.getElementById('add-device-popup');
+const removeButtons = document.querySelectorAll('.remove-device-btn');
+const deviceIdGroup = document.querySelector('.device-id-group');
+const recordingTimeGroup = document.querySelector('.recording-time-group');
+const fileGroup = document.querySelector('.file-group');
+const cameraStream = document.getElementById('camera-stream');
 
 
 addDeviceBtn.addEventListener('click', showPopupWindow);
 closePopupButton.addEventListener('click', hidePopupWindow);
-deviceTypeSelect.addEventListener('change',  configurePopupInputFields);
 confirmDeviceBtn.addEventListener('click',  handleNewDevice);
 
 
 // ------------------------------ tracking tab functionality ----------------------------------------
 
-const trackBtn = document.getElementById('track-btn');
-const licensePlateList = document.getElementById('license-plate-list');
+const filterBtn = document.getElementById('filter-btn');
+const deviceList = document.getElementById('device-list');
+const trackInputField = document.getElementById('track-input-field');
+const startTimeInputField = document.getElementById('start-time-input-field');
+const endTimeInputField = document.getElementById('end-time-input-field');
+const timeHeader = document.querySelector('#track-table th:nth-child(3)');
+const filterButton = document.getElementById('filter-btn');
+const resetButton = document.getElementById('reset-btn');
+let isTimeSortedAscending = false;
+let chevronDirection = '▲';
 
-trackBtn.addEventListener('click', handleTrackFunction);
-licensePlateList.addEventListener('click', handleLicensePlateClick);
-licensePlateList.addEventListener('dblclick', handleLicensePlateDoubleClick);
 
-// instead of the method below, why not just add an X button?
-// licensePlateList.addEventListener('mousedown', handleLicensePlateSlide);
-// licensePlateItem.addEventListener('mousemove', handleMouseMove);
-// licensePlateItem.addEventListener('mouseup', handleMouseUp);
-// licensePlateItem.addEventListener('mouseleave', handleMouseLeave);
+addChevronToTimeHeader();
+trackInputField.addEventListener('keydown', handlePressingEnter);
+deviceList.addEventListener('click', deleteEntry);
+timeHeader.addEventListener('click', handleTimeHeaderClick);
+filterButton.addEventListener('click', applyFilters);
+resetButton.addEventListener('click', resetFilters);
 
 
 // ----------------------------------------------------------------------------------------------------
 //                                      navbar functions
 // ----------------------------------------------------------------------------------------------------
-
-const dashboardSideNav = document.querySelector('.dashboard_sidenav');
-const trackSideNav = document.querySelector('.track_sidenav');
-
 
 function initializeTabs() {
     const tabLinks = document.getElementsByClassName("topnav")[0].getElementsByTagName("a");
@@ -50,6 +62,26 @@ function initializeTabs() {
 
     showContent(activeTab);
     toggleSideNavContent(activeTab);
+    licensePlatesData = JSON.parse(licensePlates);
+    fillLicensePlatesTable(licensePlatesData);
+    fillDevicesList(licensePlatesData);
+}
+
+function fillLicensePlatesTable(licensePlates) {  
+    appendResultsToTrackTable(licensePlates);
+}
+
+function fillDevicesList(licensePlates) {
+    const deviceIds = new Set();
+    for (const plate of licensePlates) {
+        if (!deviceIds.has(plate.device_identifier)) {
+            deviceIds.add(plate.device_identifier);
+        }
+    }
+
+    for (const id of deviceIds) {
+        createDeviceEntry(id);
+    }
 }
 
 function handleTabClick(event) {
@@ -84,7 +116,7 @@ function toggleSideNavContent(activeTab) {
         dashboardSideNav.style.display = 'none';
         trackSideNav.style.display = 'none';
     } else if (activeTab === 'dashboard') {
-        dashboardSideNav.style.display = 'flex';
+        dashboardSideNav.style.display = 'none';
         trackSideNav.style.display = 'none';
     } else if (activeTab === 'track') {
         dashboardSideNav.style.display = 'none';
@@ -97,29 +129,31 @@ function toggleSideNavContent(activeTab) {
 //                                      dashboard functions
 // ----------------------------------------------------------------------------------------------------
 
-const addDevicePopup = document.getElementById('add-device-popup');
-
 function showPopupWindow() {
     addDevicePopup.style.display = 'block';
 }
 
 function hidePopupWindow() {
-    addDevicePopup.style.display = 'block';
+    addDevicePopup.style.display = 'none';
 }
 
-function configurePopupInputFields() {
-    const selectedType = deviceTypeSelect.value;
-    const fileInput = document.getElementById('file');
-    const recordingTimeInput = document.getElementById('recording-time');
-
-    fileInput.required = selectedType === 'video' || selectedType === 'image';
-
-    recordingTimeInput.required = selectedType !== 'camera';
-
-    if (selectedType === 'camera') {
-        recordingTimeInput.value = getCurrentTime();
-    } else {
-        recordingTimeInput.value = '';
+function startCameraStream() {
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((stream) => {
+        cameraStream.srcObject = stream;
+      })
+      .catch((error) => {
+        console.error('Error accessing camera:', error);
+      });
+}
+  
+// Function to stop the camera stream
+function stopCameraStream() {
+    const mediaStream = cameraStream.srcObject;
+    if (mediaStream) {
+        const tracks = mediaStream.getTracks();
+        tracks.forEach((track) => track.stop());
     }
 }
 
@@ -134,13 +168,13 @@ function getCurrentTime() {
 function handleNewDevice(event) {
     event.preventDefault();
 
+    // Get form input values
     const deviceType = deviceTypeSelect.value;
     const deviceId = document.getElementById('device-id').value;
     const deviceName = document.getElementById('device-name').value;
     const recordingTime = document.getElementById('recording-time').value;
     const deviceLocation = document.getElementById('device-location').value;
     const fileInput = document.getElementById('file');
-    const devicesList = document.querySelector('.dashboard_sidenav_inner_1 .devices');
     const file = fileInput.files[0];
 
     if (deviceType === '' || deviceId === '' || deviceName === '') {
@@ -148,31 +182,394 @@ function handleNewDevice(event) {
         return;
     }
 
-    // Add the device to the list
-    const deviceLinkText = `${deviceName}`;
-    const deviceLink = createElement('a', { href: '#', class: 'device-link' });
-    deviceLink.textContent = deviceLinkText;
-    const deviceListItem = createElement('li', { class: 'device' });
-    deviceListItem.appendChild(deviceLink);
-    const deviceIdParagraph = createElement('p', { class: 'device-id' });
-    deviceIdParagraph.textContent = `${deviceType.charAt(0).toUpperCase()}${deviceType.slice(1)} - ${deviceId}`;
-    deviceListItem.appendChild(deviceIdParagraph);
-    devicesList.appendChild(deviceListItem);
+    // Create the device object
+    const device = {
+        deviceType,
+        deviceId,
+        deviceName,
+        recordingTime,
+        deviceLocation,
+        file
+    };
+
+    // Add the device to the table
+    addDeviceToTable(device);
 
     const popup = document.getElementById('add-device-popup');
     popup.style.display = 'none';
 
+    // Send the device data to the server
+    sendDataToServer(device);
+}
+
+function addDeviceToTable(device) {
+    const tableBody = document.getElementById('table-body');
+
+    // Create a new table row
+    const row = document.createElement('tr');
+
+    // Create table cells for each data field
+    const deviceNameCell = document.createElement('td');
+    deviceNameCell.textContent = device.deviceName;
+    row.appendChild(deviceNameCell);
+
+    const deviceIdCell = document.createElement('td');
+    deviceIdCell.textContent = device.deviceId;
+    deviceIdCell.classList.add('device-id');
+    row.appendChild(deviceIdCell);
+
+    const deviceTypeCell = document.createElement('td');
+    deviceTypeCell.textContent = device.deviceType;
+    row.appendChild(deviceTypeCell);
+
+    const timeAddedCell = document.createElement('td');
+    const currentTime = new Date().toLocaleString();
+    timeAddedCell.textContent = currentTime;
+    row.appendChild(timeAddedCell);
+
+    const deviceLocationCell = document.createElement('td');
+    deviceLocationCell.textContent = device.deviceLocation;
+    row.appendChild(deviceLocationCell);
+
+    const actionCell = document.createElement('td');
+    const disconnectButton = document.createElement('button');
+    disconnectButton.textContent = 'Remove';
+    disconnectButton.classList.add('disconnect-device-btn');
+    disconnectButton.classList.add('remove-device-btn');
+    disconnectButton.addEventListener('click', () => { 
+        const deviceRow = disconnectButton.closest('tr');
+        remove_device(deviceRow) 
+    });
+    actionCell.appendChild(disconnectButton);
+    row.appendChild(actionCell);
+
+    tableBody.insertBefore(row, tableBody.firstChild);
+}
+
+removeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+        const row = button.closest('tr');
+        row.remove();
+        remove_device(row);
+    });
+});
+
+function remove_device(deviceRow) {
+    const deviceId = deviceRow.querySelector('.device-id').textContent;
+
+    const csrfToken = getCookie('csrftoken');
+
+    fetch(`${removeDeviceUrl}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify({
+            device_id: deviceId,
+        }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            deviceRow.remove();
+        } else {
+            console.error('Failed to remove device:', data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+function sendDataToServer(device) {
     const formData = new FormData();
-    formData.append('deviceType', deviceType);
-    formData.append('deviceId', deviceId);
-    formData.append('deviceName', deviceName);
-    formData.append('recordingTime', recordingTime);
-    formData.append('deviceLocation', deviceLocation);
-    formData.append('file', file);
+    formData.append('deviceType', device.deviceType);
+    formData.append('deviceId', device.deviceId);
+    formData.append('deviceName', device.deviceName);
+    formData.append('recordingTime', device.recordingTime);
+    formData.append('deviceLocation', device.deviceLocation);
+    formData.append('file', device.file);
 
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    fetch(`${ uploadFileUrl }`, {
+    fetch(`${uploadFileUrl}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        body: formData
+    })
+    .then((response) => {
+        if (!response.ok) {
+            throw new Error('Request failed');
+        }
+        return response.json();
+    })
+    .then((jsonResponse) => {
+        if (device.deviceType == 'image') {
+            appendResultsToTrackTable(jsonResponse.results);
+        } else if (device.deviceType == 'video' && jsonResponse.startedProcessing) {
+            startPeriodicDataRetrieval(device.deviceId);
+        }
+        createDeviceEntry(device.deviceId);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+function startPeriodicDataRetrieval(deviceId) {
+    const url = getDeviceDataUrl.replace('__device_id__', deviceId);
+    const intervalId = setInterval(() => {
+        fetch(url)
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Request failed');
+            }
+            return response.json();
+        })
+        .then((jsonResponse) => {
+            const transformedResults = transformResultsFormat(jsonResponse.results);
+            appendResultsToTrackTable(transformedResults);
+            if (jsonResponse.finishedProcessing) {
+                clearInterval(intervalId);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }, 10000);
+}
+
+function transformResultsFormat(results) {
+    const transformedResults = [];
+    results.forEach(subList => {
+        subList.forEach(item => {
+            transformedResults.push(item);
+        });
+    });
+    return transformedResults;
+}
+
+// ----------------------------------------------------------------------------------------------------
+//                                      track functions
+// ----------------------------------------------------------------------------------------------------
+
+
+function handlePressingEnter(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        trackBtn.click();
+    }
+}
+
+function createLicensePlateEntry(plateNumber) {
+    const entry = document.createElement('li');
+    entry.classList.add('device-entry');
+    entry.classList.add('normal');
+
+    const plateNumberText = document.createElement('span');
+    plateNumberText.textContent = plateNumber;
+
+    const deleteButton = document.createElement('button');
+    deleteButton.textContent = 'X';
+    deleteButton.classList.add('delete-button');
+
+    entry.appendChild(plateNumberText);
+    entry.appendChild(deleteButton);
+
+    deviceList.appendChild(entry);
+}
+
+function deleteEntry(event) {
+    if (event.target.classList.contains('delete-button')) {
+        const entry = event.target.parentNode;
+        const deviceId = entry.querySelector('.deviceId').textContent;
+    
+        // Remove entry from side navigation
+        entry.remove();
+    
+        // Clear track table entries with the same license plate number
+        const trackTableBody = document.getElementById('track-table');
+        const entries = trackTableBody.querySelectorAll('.license-plate-entry');
+    
+        entries.forEach(entry => {
+            const deviceIdCell = entry.querySelector('.deviceId');
+            if (deviceIdCell) {
+                if (deviceIdCell.textContent === deviceId) {
+                    entry.remove();
+                }
+            } else {
+                console.error('Error: deviceIdCell is null');
+            }
+        });
+    }
+}
+
+function appendResultsToTrackTable(results) {
+    const trackTableBody = document.getElementById('track-table-body');
+    const rows = Array.from(trackTableBody.getElementsByTagName('tr'));
+
+    results.forEach((result, index) => {
+        const {
+            license_plate_id,
+            plate_number,
+            confidence_score,
+            image_data,
+            time,
+            device_identifier,
+            location,
+        } = result;
+
+        // Check if an entry for the same plate number from the same device within 1 minute already exists
+        const duplicateExists = rows.some(row => {
+            const rowDeviceId = row.querySelector('.deviceId').textContent;
+            const rowPlateNumber = row.querySelector('.license-plate-number span').textContent;
+            const rowTime = new Date(row.cells[2].textContent).getTime();
+            const resultTime = new Date(time).getTime();
+
+            const isSamePlateNumber = rowPlateNumber === plate_number;
+            const isSameDevice = rowDeviceId === device_identifier;
+            const isWithinOneMinute = Math.abs(rowTime - resultTime) <= 60000; // 1 minute = 60,000 milliseconds
+
+            return isSamePlateNumber && isSameDevice && isWithinOneMinute;
+        });
+
+        if (duplicateExists) {
+            return; // Skip adding the duplicate entry
+        }
+
+        const row = createRow();
+
+        const idCell = createCell(license_plate_id);
+        const deviceIdCell = createCell(device_identifier);
+        deviceIdCell.classList.add("deviceId");
+        const formattedTime = new Date(time).toLocaleString();
+        const timeCell = createCell(formattedTime);
+
+        const licensePlateCell = document.createElement('td');
+        const licensePlateText = document.createElement('span');
+        licensePlateText.textContent = plate_number;
+        licensePlateCell.classList.add('license-plate-number');
+        licensePlateCell.appendChild(licensePlateText);
+
+        const vehicleTypeCell = createVehicleTypeCell(plate_number);
+        const locationCell = createCell(location);
+        const imageCell = createImageCell(image_data);
+
+        row.appendChild(idCell);
+        row.appendChild(deviceIdCell);
+        row.appendChild(timeCell);
+        row.appendChild(licensePlateCell);
+        row.appendChild(vehicleTypeCell);
+        row.appendChild(locationCell);
+        row.appendChild(imageCell);
+
+        const insertIndex = rows.findIndex((row) => {
+            const timeValue = new Date(row.cells[2].textContent).getTime();
+            const resultTimeValue = new Date(time).getTime();
+
+            return isTimeSortedAscending ? resultTimeValue < timeValue : resultTimeValue > timeValue;
+        });
+
+        if (insertIndex === -1) {
+            trackTableBody.appendChild(row);
+        } else {
+            trackTableBody.insertBefore(row, rows[insertIndex]);
+        }
+
+        rows.push(row);
+    });
+}
+
+
+function getVehicleType(plateNumber) {
+    const lastTwoDigits = plateNumber.slice(-2);
+
+    if (lastTwoDigits.startsWith('0')) {
+        return 'private';
+    } else if (lastTwoDigits.startsWith('1')) {
+        return 'commercial';
+    } else if (lastTwoDigits.startsWith('2')) {
+        return 'public';
+    } else if (lastTwoDigits.startsWith('4')) {
+        return 'municipal';
+    } else if (lastTwoDigits.startsWith('5')) {
+        return 'government';
+    } else {
+        return 'unknown';
+    }
+}
+
+function createDeviceEntry(deviceId) {
+    const deviceList = document.getElementById('device-list');
+    const deviceEntries = deviceList.getElementsByClassName('device-entry');
+
+    const allDevicesIds = [];
+    for (let i = 0; i < deviceEntries.length; i++) {
+        const deviceIdSpan = deviceEntries[i].querySelector('.deviceId');
+        if (deviceIdSpan) {
+            const existingDeviceId = deviceIdSpan.textContent;
+            allDevicesIds.push(existingDeviceId);
+        }
+    }
+
+    if (!allDevicesIds.includes(deviceId)) {
+        const entry = document.createElement('li');
+        entry.classList.add('device-entry');
+        entry.classList.add('normal');
+
+        const deviceIdSpan = document.createElement('span');
+        deviceIdSpan.textContent = deviceId;
+        deviceIdSpan.classList.add('deviceId');
+
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'X';
+        deleteButton.classList.add('delete-button');
+
+        entry.appendChild(deviceIdSpan);
+        entry.appendChild(deleteButton);
+
+        // Add event listener to device entry
+        deviceIdSpan.addEventListener('click', () => {
+            const trackTableBody = document.getElementById('track-table-body');
+            const licensePlateEntries = trackTableBody.getElementsByClassName('license-plate-entry');
+
+            for (let i = 0; i < licensePlateEntries.length; i++) {
+                const licensePlateEntry = licensePlateEntries[i];
+                const licensePlateDeviceId = licensePlateEntry.querySelector('.deviceId').textContent;
+
+                if (licensePlateDeviceId !== deviceId) {
+                    if (licensePlateEntry.style.display === 'none') {
+                        licensePlateEntry.style.display = '';
+                    } else {
+                        licensePlateEntry.style.display = 'none';
+                    }
+                } else {
+                    licensePlateEntry.style.display = '';
+                }
+            }
+        });
+
+        deviceList.appendChild(entry);
+    }
+}
+
+function updateLicensePlateNumber(row, license_plate_id, newPlateNumber) {
+    const formData = new FormData();
+    formData.append('id', license_plate_id);
+    formData.append('plate_number', newPlateNumber);
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch(`${updateLicensePlateUrl}`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': csrfToken
@@ -181,148 +578,19 @@ function handleNewDevice(event) {
     })
     .then(response => response.json())
     .then(data => {
-        refreshResults(data.results);
+        if (data.success) {
+            // Update the license plate number in the table
+            const licensePlateCell = row.querySelector('.license-plate-number');
+            licensePlateCell.textContent = newPlateNumber;
+        } else {
+            console.error('License plate update failed:', data.message);
+        }
     })
     .catch(error => {
         console.error('Error:', error);
     });
 }
-
-function refreshResults(results) {
-    const tableBody = document.getElementById('table-body');
-
-    // Get the current number of table rows
-    const rowCount = tableBody.rows.length;
-
-    // Iterate over the results and add entries to the table in reverse order
-    for (let i = results.length - 1; i >= 0; i--) {
-        const frameResults = results[i];
-        frameResults.forEach((result, index) => {
-            const {
-                plate_number,
-                confidence_score,
-                image_data,
-                time,
-                device_identifier,
-                device_type,
-                location,
-            } = result;
-
-            // Create a new table row
-            const row = document.createElement('tr');
-
-            // Create table cells for each data field
-            const entryCell = document.createElement('td');
-            entryCell.textContent = rowCount + index + 1;
-            row.appendChild(entryCell);
-
-            const deviceIdCell = document.createElement('td');
-            deviceIdCell.textContent = device_identifier;
-            row.appendChild(deviceIdCell);
-
-            const timeCell = document.createElement('td');
-            timeCell.textContent = time;
-            row.appendChild(timeCell);
-
-            const licensePlateCell = document.createElement('td');
-            licensePlateCell.textContent = plate_number;
-            row.appendChild(licensePlateCell);
-
-            const locationCell = document.createElement('td');
-            locationCell.textContent = location;
-            row.appendChild(locationCell);
-
-            // Insert the new row at the beginning of the table body
-            tableBody.insertBefore(row, tableBody.firstChild);
-        });
-    }
-}
-
-
-// ----------------------------------------------------------------------------------------------------
-//                                      track functions
-// ----------------------------------------------------------------------------------------------------
-
-const trackInputField = document.getElementById('track-input-field');
-
-function handleTrackFunction(event) {
-    event.preventDefault();
-    const licensePlate = trackInputField.value;
-    if (isValidLicensePlate(licensePlate) && !isDuplicateLicensePlate(licensePlate)) {
-        const formattedLicensePlate = formatLicensePlate(licensePlate); // 3-dddd-dd or 3-dddd-**
-
-        const licensePlateItem = document.createElement('li');
-        licensePlateItem.innerText = formattedLicensePlate;
-        licensePlateItem.classList.add('normal');
-        licensePlateItem.classList.add('license-plate');
-        licensePlateItem.innerText = formattedLicensePlate;
-        licensePlateList.appendChild(licensePlateItem);
-
-        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-
-        const url = `${ searchByPlateUrl }?licensePlate=${encodeURIComponent(formattedLicensePlate)}`;
-        fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrfToken
-            }
-        })
-        .then(response => response.json())
-        .then(results => {
-            appendResultsToTrackTable(results);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-
-        trackInputField.value = '';
-    } else {
-        alert('Invalid plate\nLicense Plate must be either a 4- or a 7-Digit unique number\nIf it\'s a 7-Digit number, then it must start with 3');
-    }
-}
-
-function appendResultsToTrackTable(results) {
-    const trackTableBody = document.getElementById('track-table-body');
-
-    results.forEach((result, index) => {
-        const {
-            plate_number,
-            confidence_score,
-            image_data,
-            time,
-            device_identifier,
-            device_type,
-            location,
-        } = result;
-
-        const row = document.createElement('tr');
-
-        const entryCell = document.createElement('td');
-        entryCell.textContent = index + 1;
-        row.appendChild(entryCell);
-
-        const deviceIdCell = document.createElement('td');
-        deviceIdCell.textContent = device_identifier;
-        row.appendChild(deviceIdCell);
-
-        const timeCell = document.createElement('td');
-        const formattedTime = new Date(time).toLocaleString();
-        timeCell.textContent = formattedTime;
-        row.appendChild(timeCell);
-
-        const licensePlateCell = document.createElement('td');
-        licensePlateCell.textContent = plate_number;
-        row.appendChild(licensePlateCell);
-
-        const locationCell = document.createElement('td');
-        locationCell.textContent = location;
-        row.appendChild(locationCell);
-
-        trackTableBody.appendChild(row);
-    });
-}
-
+  
 function isValidLicensePlate(licensePlate) {
     const numberRegex = /^\d+$/;
     const licensePlateNumber = licensePlate.replace(/-/g, '');
@@ -355,7 +623,7 @@ function formatLicensePlate(licensePlate) {
 }
 
 function isDuplicateLicensePlate(licensePlate) {
-    const licensePlates = Array.from(licensePlateList.getElementsByTagName('button'));
+    const licensePlates = Array.from(deviceList.getElementsByTagName('button'));
     const formattedLicensePlate = formatLicensePlate(licensePlate);
     return licensePlates.some((button) => button.textContent === formattedLicensePlate);
 }
@@ -367,7 +635,7 @@ function handleLicensePlateClick(event) {
     if (clickedLicensePlate.classList.contains('active-only')) {
         clickedLicensePlate.classList.remove('active-only');
     } else {
-        const activeOnlyItems = licensePlateList.getElementsByClassName('active-only');
+        const activeOnlyItems = deviceList.getElementsByClassName('active-only');
         for (const item of activeOnlyItems) {
             item.classList.remove('active-only');
         }
@@ -375,7 +643,7 @@ function handleLicensePlateClick(event) {
     }
 
     // Toggle normal/inactive class for all license plate items
-    const licensePlateItems = licensePlateList.getElementsByTagName('li');
+    const licensePlateItems = deviceList.getElementsByTagName('li');
     for (const item of licensePlateItems) {
         if (item === clickedLicensePlate) {
             item.classList.toggle('normal');
@@ -406,47 +674,118 @@ function handleLicensePlateDoubleClick(event) {
     }
 }
 
-function handleLicensePlateSlide(event) {
-    const licensePlateItem = event.target;
-    const startX = event.pageX;
+function handleTimeHeaderClick() {
+    const trackTableBody = document.getElementById('track-table-body');
+    const rows = Array.from(trackTableBody.getElementsByTagName('tr'));
+  
+    rows.sort((rowA, rowB) => {
+      const timeA = new Date(rowA.cells[2].textContent);
+      const timeB = new Date(rowB.cells[2].textContent);
+  
+      if (isTimeSortedAscending) {
+        return timeA - timeB;
+      } else {
+        return timeB - timeA;
+      }
+    });
+  
+    isTimeSortedAscending = !isTimeSortedAscending;
+    chevronDirection = isTimeSortedAscending ? '▼' : '▲';
+    updateChevronDirection();
+  
+    trackTableBody.innerHTML = '';
+  
+    rows.forEach(row => trackTableBody.appendChild(row));
 }
 
-function handleMouseMove(e) {
-    const x = e.pageX;
-    const diff = x - startX;
+function updateChevronDirection() {
+    const chevronElement = timeHeader.querySelector('.chevron');
+    chevronElement.textContent = chevronDirection;
+};
 
-    if (Math.abs(diff) > 50) {
-        licensePlateItem.removeEventListener('mouseup', handleMouseUp);
-        licensePlateItem.removeEventListener('mouseleave', handleMouseLeave);
-
-        // Prompt confirmation window
-        const confirmed = confirm('Are you sure you want to delete this license plate?');
-
-        if (confirmed) {
-            // Delete the license plate and its corresponding entries
-            licensePlateList.removeChild(licensePlateItem);
-            const licensePlate = licensePlateItem.innerText;
-
-            const trackTableBody = document.getElementById('track-table-body');
-            const trackTableEntries = trackTableBody.getElementsByTagName('tr');
-            for (const entry of trackTableEntries) {
-                const licensePlateCell = entry.getElementsByTagName('td')[3];
-                if (licensePlateCell.innerText === licensePlate) {
-                    trackTableBody.removeChild(entry);
-                }
-            }
-        }
-    }
+function addChevronToTimeHeader() {
+    const chevronElement = document.createElement('span');
+    chevronElement.classList.add('chevron');
+    timeHeader.appendChild(chevronElement);
+    updateChevronDirection();
 }
 
-function handleMouseUp() {
-    licensePlateItem.removeEventListener('mousemove', handleMouseMove);
+function createRow() {
+    const row = document.createElement('tr');
+    row.classList.add('license-plate-entry');
+    return row;
 }
 
-function handleMouseLeave() {
-    licensePlateItem.removeEventListener('mousemove', handleMouseMove);
+function createCell(content) {
+    const cell = document.createElement('td');
+    cell.textContent = content;
+    return cell;
 }
 
+function createVehicleTypeCell(plate_number) {
+    const vehicleTypeCell = document.createElement('td');
+    const vehicleType = getVehicleType(plate_number);
+    vehicleTypeCell.textContent = vehicleType;
+    return vehicleTypeCell;
+}
+
+function createImageCell(imageData) {
+    const imageCell = document.createElement('td');
+    imageCell.classList.add('license-plate-image-cell');
+    const licensePlateImage = document.createElement('img');
+    licensePlateImage.src = 'data:image/jpeg;base64,' + imageData;
+    licensePlateImage.classList.add('license-plate-image');
+    imageCell.appendChild(licensePlateImage);
+    return imageCell
+}
+
+function applyFilters() {
+    const licensePlateInput = document.getElementById('track-input-field').value.trim();
+    const startTimeInput = document.getElementById('start-time-input-field').value.trim();
+    const endTimeInput = document.getElementById('end-time-input-field').value.trim();
+    const vehicleTypeInput = document.getElementById('vehicle-type-input-field').value.trim();
+    const locationInput = document.getElementById('location-input-field').value.trim();
+    const deviceIdInput = document.getElementById('device-id-input-field').value.trim();
+  
+    const rows = Array.from(document.querySelectorAll('#track-table-body tr'));
+  
+    rows.forEach(row => {
+      const licensePlateCell = row.querySelector('.license-plate-number');
+      const timeCell = row.querySelector('td:nth-child(3)');
+      const vehicleTypeCell = row.querySelector('td:nth-child(5)');
+      const locationCell = row.querySelector('td:nth-child(6)');
+      const deviceIdCell = row.querySelector('.deviceId');
+  
+      const licensePlate = licensePlateCell.textContent.trim();
+      const time = new Date(timeCell.textContent.trim());
+      const vehicleType = vehicleTypeCell.textContent.trim();
+      const location = locationCell.textContent.trim();
+      const deviceId = deviceIdCell.textContent.trim();
+  
+      const showRow =
+        (licensePlateInput === '' || licensePlate.includes(licensePlateInput)) &&
+        (startTimeInput === '' || time >= new Date(startTimeInput)) &&
+        (endTimeInput === '' || time <= new Date(endTimeInput)) &&
+        (vehicleTypeInput === '' || vehicleType.toLowerCase().includes(vehicleTypeInput.toLowerCase())) &&
+        (locationInput === '' || location.toLowerCase().includes(locationInput.toLowerCase())) &&
+        (deviceIdInput === '' || deviceId.includes(deviceIdInput));
+  
+      row.style.display = showRow ? '' : 'none';
+    });
+  }
+  
+function resetFilters() {
+    const rows = Array.from(document.querySelectorAll('#track-table-body tr'));
+    rows.forEach(row => {
+        row.style.display = '';
+    });
+    document.getElementById('track-input-field').value = '';
+    document.getElementById('start-time-input-field').value = '';
+    document.getElementById('end-time-input-field').value = '';
+    document.getElementById('vehicle-type-input-field').value = '';
+    document.getElementById('location-input-field').value = '';
+    document.getElementById('device-id-input-field').value = '';
+}
 // ----------------------------------------------------------------------------------------------------
 //                                      utility functions
 // ----------------------------------------------------------------------------------------------------

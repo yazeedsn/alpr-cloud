@@ -33,6 +33,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# SECURITY WARNING: keep the secret key used in production secret!
+#SECRET_KEY = 'django-insecure-9lbchrw&c9xr5u!^j3xgo2p7z1y7+-2p^grdt0398mcqwebmcl'
+
+
 env = environ.Env(DEBUG=(bool, DEBUG))
 env_file = os.path.join(BASE_DIR, ".env")
 

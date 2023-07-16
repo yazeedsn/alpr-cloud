@@ -28,20 +28,13 @@
     <!-- Side Navigation Bar -->
     <div class="sidenav">
         <div class="dashboard_sidenav" style="display: none;">
-            <div class="dashboard_sidenav_inner_1">
-                <h3 class="sidenav-title">Devices</h3>
-                <ul class="devices">
-                </ul>
-            </div>
-            <div class="dashboard_sidenav_inner_2">
-                <button id="add-device-btn">Add Tracking Device</button>
-            </div>
         </div>
         <div class="track_sidenav" style="display: none;">
             <div class="track_sidenav_inner_1">
-                <h3>License Plates</h3>
-                <ul id="license-plate-list">
-                    <!-- License Plate List Items will be dynamically added here -->
+                <h3>Devices</h3>
+                <ul id="device-list">
+                    <!-- Device List Items will be dynamically added here -->
+                    
                 </ul>
             </div>
         </div>
@@ -113,51 +106,106 @@
     <!-- Content Area - Dashboard Tab -->
     <div class="content dashboard_content">
         <div class="dashboard-container">
+            <div class="add-device-section">
+                <h3>Add Tracking Device</h3>
+                <a id="add-device-btn">Add Device</a>
+            </div>
             <div class="table-section">
+                <h3>Connected Devices</h3>
                 <table id="dashboard-table">
                     <thead>
                         <tr>
-                            <th>Entry</th>
+                            <th>Device Name</th>
                             <th>Device ID</th>
-                            <th>Time</th>
-                            <th>License Plate</th>
+                            <th>Device Type</th>
+                            <th>Time Added</th>
                             <th>Location</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                        <!-- Dashboard Table Entries will be dynamically added here -->
+                        {% for connected_device in connected_devices %}
+                        <tr>
+                          <td>{{ connected_device.device_name }}</td>
+                          <td class="device-id">{{ connected_device.device_id }}</td>
+                          <td>{{ connected_device.device_type }}</td>
+                          <td>{{ connected_device.connection_time }}</td>
+                          <td>{{ connected_device.device_location }}</td>
+                          <td>
+                            <button class="disconnect-device-btn remove-device-btn">Remove</button>
+                          </td>
+                        </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
+    <!-- Modal - Display Image -->
+    <div id="image-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <img id="image-modal-img" src="" alt="License Plate Image">
+        </div>
+    </div>
 
     <!-- Content Area - Track Tab -->
     <div class="content track_content">
         <div class="track-container">
-            <div class="table-section">
-                {% csrf_token %}
-                <div id="track-input">
-                    <label for="track-input-field">Enter License Plate:</label>
-                    <input type="text" id="track-input-field">
-                    <button id="track-btn">Track</button>
+        <div class="table-section">
+            {% csrf_token %}
+            <div id="track-input">
+                <div class="group1 input-group">
+                    <div class="sub-group-1 sub-group">
+                        <label for="track-input-field">Enter License Plate:</label>
+                        <input type="text" id="track-input-field" />
+                    </div>
+                    <div class="sub-group-2 sub-group">
+                        <label for="start-time-input-field">Start Time:</label>
+                        <input type="datetime-local" id="start-time-input-field" />
+                    </div>
+                    <div class="sub-group-3 sub-group">
+                        <label for="end-time-input-field">End Time:</label>
+                        <input type="datetime-local" id="end-time-input-field" />
+                    </div>
                 </div>
-                <table id="track-table">
-                    <thead>
-                        <tr>
-                            <th>Entry</th>
-                            <th>Device ID</th>
-                            <th>Time</th>
-                            <th>License Plate</th>
-                            <th>Location</th>
-                        </tr>
-                    </thead>
-                    <tbody id="track-table-body">
-                        <!-- Track Table Entries will be dynamically added here -->
-                    </tbody>
-                </table>
-            </div>
+                <div class="group2 input-group">
+                    <div class="sub-group-1 sub-group">
+                        <label for="vehicle-type-input-field">Vehicle Type:</label>
+                        <input type="text" id="vehicle-type-input-field" />
+                    </div>
+                    <div class="sub-group-2 sub-group">
+                        <label for="location-input-field">Location:</label>
+                        <input type="text" id="location-input-field" />
+                    </div>
+                    <div class="sub-group-3 sub-group">
+                        <label for="device-id-input-field">Device ID:</label>
+                        <input type="text" id="device-id-input-field" />
+                    </div>
+                </div>
+                <div class="group3 input-group">
+                    <button id="filter-btn">Filter</button>
+                    <button id="reset-btn">Reset Filters</button>
+                </div>
+              </div>
+            <table id="track-table">
+            <thead>
+                <tr>
+                <th>#</th> 
+                <th>Device ID</th>
+                <th>Captured Time</th>
+                <th>License Plate</th>
+                <th>Vehicle Type</th>
+                <th>Location</th>
+                <th>image</th>
+                </tr>
+            </thead>
+            <tbody id="track-table-body">
+                <!-- Track Table Entries will be dynamically added here -->
+            </tbody>
+            </table>
+        </div>
         </div>
     </div>
 
@@ -168,48 +216,51 @@
                 {% csrf_token %}
                 <div class="form-groups-1">
                     <div class="form-group">
-                        <label for="device-name">Device Name:</label>
-                        <input type="text" id="device-name" name="device-name">
-                    </div>
-                    <div class="form-group">
                         <label for="device-type">Device Type:</label>
                         <select id="device-type" name="device-type">
-                            <option value="camera">Camera</option>
                             <option value="image">Image</option>
                             <option value="video">Video</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="device-id">Device ID:</label>
-                        <input type="text" id="device-id" name="device-id">
+                        <label for="device-name">Device Name:</label>
+                        <input type="text" id="device-name" name="device-name" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group device-id-group">
+                        <label for="device-id">Device ID:</label>
+                        <input type="text" id="device-id" name="device-id" required>
+                    </div>
+                    <div class="form-group recording-time-group">
                         <label for="recording-time">Recording Time:</label>
-                        <input type="datetime-local" id="recording-time" name="recording-time">
+                        <input type="datetime-local" id="recording-time" name="recording-time" required>
                     </div>
                     <div class="form-group">
                         <label for="device-location">Device Location:</label>
-                        <input type="text" id="device-location" name="device-location">
+                        <input type="text" id="device-location" name="device-location" required>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group file-group">
                         <label for="file">Upload image or video:</label>
-                        <input type="file" name="file" id="file">
-                    </div>
-                </div>
-                <div class="form-groups-2">
-                    <div class="submit-group">
-                        <button id="confirm-device-btn" type="submit">Add Device</button>
+                        <input type="file" name="file" id="file" required>
                     </div>
                 </div>
             </form>
+            <div class="form-groups-2">
+                <div class="submit-group">
+                    <button id="confirm-device-btn" type="submit">Add Device</button>
+                </div>
+            </div>
             <button id="close-popup-button">X</button>
         </div>
     </div>
 
-    <script src="{% static 'car_tracker/js/app.js' %}"></script>
     <script>
-        const uploadFileUrl = "{% url 'upload_file' %}"
-        const searchByPlateUrl = "{% url 'search_by_plate' %}"
+        const uploadFileUrl = "{% url 'handle_new_device' %}";
+        const searchByPlateUrl = "{% url 'search_by_plate' %}";
+        const updateLicensePlateUrl = "{% url 'update_license_plate' %}";
+        const removeDeviceUrl = "{% url 'remove_device' %}";
+        const licensePlates = '{{ license_plates|safe }}';
+        const getDeviceDataUrl = `{% url 'get_device_data' device_id='__device_id__' %}`;
     </script>
+    <script src="{% static 'car_tracker/js/app.js' %}"></script>
 </body>
 </html>
