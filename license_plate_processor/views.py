@@ -9,6 +9,7 @@ from django.http import HttpResponseNotAllowed
 from .utils.ocr_reader import PaddleOCR
 from .utils.util_functions import format_plates_info
 
+import threading
 
 def process_video(ocr_reader, file_path, device_info, shared_data, shared_data_lock):
     device_identifier = device_info['device_id']
@@ -27,29 +28,40 @@ def process_video(ocr_reader, file_path, device_info, shared_data, shared_data_l
         }
 
     repeat_count  = {}
+    preditcion_thread = None
+    result = [None]
     start_time = time.time()
-    with shared_data_lock:
-        if device_identifier in shared_data:
-            while True:
-                ret, frame = cap.read()
-                if not ret:
-                    print(f'Finished processing the video for device: {device_identifier}')
-                    break
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            print(f'Finished processing the video for device: {device_identifier}')
+            break
 
-                frame_count += 1
-                frame_time = calculate_frame_time(frame_count, fps, recording_time)
+        frame_count += 1
+        frame_time = calculate_frame_time(frame_count, fps, recording_time)
 
-                # 2023-07-15 14:33:54
-                extracted_frame_data = read_image(frame, ocr_reader, device_identifier, device_type, frame_time, location)
+        if not preditcion_thread or not preditcion_thread.is_alive():
+            extracted_frame_data = result[0]
+            if(extracted_frame_data):
                 for data_unit in extracted_frame_data:
                     plate_number = data_unit['plate_number']
                     repeat_count[plate_number] = 1 + repeat_count.get(plate_number, 0)
                     if(repeat_count.get(plate_number, 0) >= 3):
                         license_plates_info = save_frame_data([data_unit])
                         format_plates_info(license_plates_info)
-                        shared_data[device_identifier]['results'].append([data_unit])
-            end_time = time.time()
+                        with shared_data_lock:
+                            if device_identifier in shared_data:
+                                shared_data[device_identifier]['results'].append([data_unit])
+            preditcion_thread = threading.Thread(target=read, args=(result, frame, ocr_reader, device_identifier, device_type, frame_time, location))
+            preditcion_thread.start()
+        
+        time.sleep(1/fps)
+    
+    end_time = time.time()
     cap.release()
     print(f"processing time: {end_time-start_time}")
     with shared_data_lock:
         shared_data[device_identifier]['finished_processing'] = True
+
+def read(result, frame, ocr_reader, device_identifier, device_type, frame_time, location):
+    result[0] = read_image(frame, ocr_reader, device_identifier, device_type, frame_time, location)
