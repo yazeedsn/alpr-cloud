@@ -47,11 +47,7 @@ def process_video(ocr_reader, file_path, device_info, shared_data, shared_data_l
                     plate_number = data_unit['plate_number']
                     repeat_count[plate_number] = 1 + repeat_count.get(plate_number, 0)
                     if(repeat_count.get(plate_number, 0) >= 3):
-                        license_plates_info = save_frame_data([data_unit])
-                        format_plates_info(license_plates_info)
-                        with shared_data_lock:
-                            if device_identifier in shared_data:
-                                shared_data[device_identifier]['results'].append([data_unit])
+                        threading.Thread(target=save, args=(data_unit,  device_identifier, shared_data))
             preditcion_thread = threading.Thread(target=read, args=(result, frame, ocr_reader, device_identifier, device_type, frame_time, location))
             preditcion_thread.start()
         
@@ -65,3 +61,10 @@ def process_video(ocr_reader, file_path, device_info, shared_data, shared_data_l
 
 def read(result, frame, ocr_reader, device_identifier, device_type, frame_time, location):
     result[0] = read_image(frame, ocr_reader, device_identifier, device_type, frame_time, location)
+
+def save(data_unit, device_identifier, shared_data):
+    license_plates_info = save_frame_data([data_unit])
+    format_plates_info(license_plates_info)
+    with shared_data_lock:
+        if device_identifier in shared_data:
+            shared_data[device_identifier]['results'].append([data_unit])
