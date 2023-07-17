@@ -2,7 +2,7 @@ from .models_loader import yolo_model
 
 
 def predict(frame):
-    results = yolo_model(source=frame, stream=True, save=False)
+    results = yolo_model.predict(source=frame, stream=True)
     cars = []
     plates = []
     for result in results:
