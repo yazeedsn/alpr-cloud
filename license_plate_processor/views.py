@@ -47,7 +47,7 @@ def process_video(ocr_reader, file_path, device_info, shared_data, shared_data_l
                     plate_number = data_unit['plate_number']
                     repeat_count[plate_number] = 1 + repeat_count.get(plate_number, 0)
                     if(repeat_count.get(plate_number, 0) >= 3):
-                        threading.Thread(target=save, args=(data_unit,  device_identifier, shared_data))
+                        threading.Thread(target=save, args=(data_unit,  device_identifier, shared_data)).start()
             preditcion_thread = threading.Thread(target=read, args=(result, frame, ocr_reader, device_identifier, device_type, frame_time, location))
             preditcion_thread.start()
         
